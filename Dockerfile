@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a parent image
-FROM node:alpine
+FROM node:18-alpine AS build
 
 # Set the working directory in the container
 WORKDIR /app
@@ -13,8 +13,11 @@ RUN npm install
 # Copy all the application source code into the /app directory
 COPY . .
 
-# Expose port 5173
-EXPOSE 5173
+# Build the app for production
+RUN npm run build
 
-# Start nginx
-CMD ["npm","run","dev"]
+# Expose port 4173 (Vite preview default)
+EXPOSE 4173
+
+# Start the built app using Vite's preview mode
+CMD ["npm", "run", "preview"]
