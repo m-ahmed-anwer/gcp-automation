@@ -35,7 +35,7 @@ jobs:
 
       - name: 'Docker Auth To GAR'
         run: |
-          gcloud auth configure-docker "${{env.GAR_REGION}}-docker.pkg.dev"
+          gcloud auth configure-docker "${{ env.GAR_REGION }}-docker.pkg.dev"
 
       - name: 'Build and Push To GAR'
         run: |-
@@ -45,14 +45,13 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          echo SERVICE_NAME ${{ env.GCR_SERVICE }}
           gcloud run deploy ${{ env.GCR_SERVICE }} \
             --image ${{ env.GAR_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.GCR_SERVICE }}:${{ github.sha }} \
             --platform managed \
             --region ${{ env.GCR_REGION }} \
             --port 5757 \
             --allow-unauthenticated
-      
+
       - name: 'Show output'
-        run: |2-
-          echo ${{ steps.deploy.outputs.url }}
+        run: |
+          echo "Cloud Run Service URL: ${{ steps.deploy.outputs.url }}"
