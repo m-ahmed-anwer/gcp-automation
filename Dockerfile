@@ -16,8 +16,14 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Expose port 5757
-EXPOSE 5757
+# Stage 2: Serve the app with Nginx
+FROM nginx:alpine
 
-# Start nginx
-CMD ["npm","run","preview"]
+# Copy the built files from the previous stage to the Nginx html directory
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
