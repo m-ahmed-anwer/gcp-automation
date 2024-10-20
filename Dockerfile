@@ -13,11 +13,8 @@ RUN npm install
 # Copy all the application source code into the /app directory
 COPY . .
 
-# Build the app
-RUN npm run build
-
-# Expose port 4173
-EXPOSE 4173
+# Expose port 5173
+EXPOSE 5173
 
 # Start nginx
-CMD ["npm","run","preview"]
+CMD ["npm","run","dev"]
