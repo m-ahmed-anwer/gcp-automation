@@ -1,56 +1,40 @@
-name: GCP Deploy
+name: Deploy to Cloud Run
+
+env:
+  SERVICE_NAME: gcp-deployment
 
 on:
   push:
     branches:
-      - main  # Change to your default branch if it's not main
-  pull_request:
-    branches:
-      - main  # Change to your default branch if it's not main
+      - main
 
 jobs:
-  build:
+  dockerize-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    - name: Cache Docker layers
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker
 
-    - name: Log in to Google Container Registry
-      env:
-        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-      run: |
-        echo "${GCP_SA_KEY}" | base64 --decode > ${HOME}/gcp-key.json
-        gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-        gcloud config set project $GCP_PROJECT_ID
-        gcloud auth configure-docker
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest .
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest
 
-    - name: Build Docker image
-      run: |
-        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest .
-
-    - name: Push Docker image
-      run: |
-        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest
-
-    - name: Deploy to Cloud Run
-      env:
-        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      run: |
-        gcloud run deploy gcp-automation \
-          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest \
-          --platform managed \
-          --region us-central1 \
-          --allow-unauthenticated
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.DOCKER_IMAGE_NAME }}:latest \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated
