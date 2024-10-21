@@ -16,8 +16,9 @@ COPY . .
 # Build the app for production
 RUN npm run build
 
-# Expose port 4173 (Vite preview default)
+# Expose the port for Cloud Run (which defaults to 8080)
 EXPOSE 8080
 
 # Command to run the Vite preview server on port 8080
-CMD ["npm", "run", "preview", "--", "--port", "8080", "--host"]
+# This ensures Vite listens on the PORT environment variable from Cloud Run
+CMD ["npm", "run", "preview", "--", "--host", "--port", "8080"]
