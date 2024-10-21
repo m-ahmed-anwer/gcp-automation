@@ -21,4 +21,5 @@ EXPOSE 8080
 
 # Command to run the Vite preview server on port 8080
 # This ensures Vite listens on the PORT environment variable from Cloud Run
-CMD ["npm", "run", "preview", "--", "--host", "--port", "8080"]
+CMD ["sh", "-c", "npm run preview -- --port ${PORT:-8080} --host"]
+
