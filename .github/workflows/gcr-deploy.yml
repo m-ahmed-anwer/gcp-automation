@@ -1,58 +1,48 @@
-name: 'Build and Deploy to Cloud Run'
+name: Deploy to GCP
 
 on:
   push:
     branches:
-      - 'main'
-
-env:
-  PROJECT_ID: '${{ secrets.PROJECT_ID }}'
-  GCR_REGION: '${{ secrets.GCR_REGION }}'
-  GCR_SERVICE: '${{ secrets.GCR_SERVICE }}'
-  GAR_NAME: '${{ secrets.GAR_NAME }}'
-  GAR_REGION: '${{ secrets.GAR_REGION }}'
+      - main 
 
 jobs:
-  deploy:
-    runs-on: 'ubuntu-latest'
-
-    permissions:
-      contents: 'read'
-      id-token: 'write'
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@v4'
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: 'Authenticate to GCP'
-        id: 'auth'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: '${{ secrets.GCP_CREDS }}'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      - name: Set up Cloud SDK
-        uses: 'google-github-actions/setup-gcloud@v2'
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: 'Docker Auth To GAR'
-        run: |
-          gcloud auth configure-docker "${{env.GAR_REGION}}-docker.pkg.dev"
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: 'Build and Push To GAR'
-        run: |-
-          DOCKER_TAG="gcr.io/${{ env.PROJECT_ID }}/gcp-automation:latest"
-          docker build --tag "${DOCKER_TAG}" .
-          docker push "${DOCKER_TAG}"
+    - name: Configure Docker to use the Google Cloud Registry
+      run: gcloud auth configure-docker
 
-      - name: Deploy to Cloud Run
-        run: |
-          echo SERVICE_NAME ${{ env.GCR_SERVICE }}
-          gcloud run deploy ${{ env.GCR_SERVICE }} \
-            --image ${{ env.GAR_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_NAME }}/${{ env.GCR_SERVICE }}:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.GCR_REGION }} \
-            --port 5757 \
-            --allow-unauthenticated
-      
-      - name: 'Show output'
-        run: |2-
-          echo ${{ steps.deploy.outputs.url }}
+    - name: Build the Docker image
+      run: |
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest .
+
+    - name: Push the Docker image to GCP Container Registry
+      run: |
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy gcp-automation \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --port 8080
