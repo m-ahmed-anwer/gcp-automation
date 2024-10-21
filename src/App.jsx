@@ -1,6 +1,9 @@
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+
+import gar from "./assets/gar.png";
+import gcr from "./assets/gcr.png";
+
 import "./App.css";
 
 function App() {
@@ -9,11 +12,17 @@ function App() {
   return (
     <>
       <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
+        <a
+          href="https://cloud.google.com/artifact-registry/docs"
+          target="_blank"
+        >
+          <img src={gar} className="logo" alt="GAR logo" />
         </a>
         <a href="https://react.dev" target="_blank">
           <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
+        <a href="https://cloud.google.com/run?hl=en" target="_blank">
+          <img src={gcr} className="logo react" alt="GCR logo" />
         </a>
       </div>
       <h1>GCP Deployment</h1>
@@ -21,11 +30,14 @@ function App() {
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
       </div>
-      <p className="read-the-docs">Made to learn the GCP concepts by Ahmed Anwer.</p>
+      <p className="read-the-docs">Made in order to learn the GCP concepts</p>
+      <p className="read-the-docs">
+        Created by{" "}
+        <a href="https://github.com/m-ahmed-anwer" target="_blank">
+          Ahmed Anwer
+        </a>
+      </p>
     </>
   );
 }
