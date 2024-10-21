@@ -1,89 +1,56 @@
-name: Google Cloud Run Deploy
-# https://github.com/google-github-actions/setup-gcloud
+name: GCP Deploy
+
 on:
   push:
     branches:
-      - main
-
-env:
-  PROJECT_ID: ${{ secrets.GCR_PROJECT }}
-  RUN_REGION: us-central1
-  SERVICE_NAME: medium-react-app
+      - main  # Change to your default branch if it's not main
+  pull_request:
+    branches:
+      - main  # Change to your default branch if it's not main
 
 jobs:
   build:
-    name: Build React App
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@main
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Setup Node.js (NPM)
-        uses: actions/setup-node@master
-        with:
-          node-version: "12.x"
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: Use cached node_modules
-        uses: actions/cache@master
-        with:
-          path: node_modules
-          key: nodeModules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            nodeModules-
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
 
-      - name: Install dependencies
-        run: npm ci
-        env:
-          CI: true
+    - name: Log in to Google Container Registry
+      env:
+        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      run: |
+        echo "${GCP_SA_KEY}" | base64 --decode > ${HOME}/gcp-key.json
+        gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+        gcloud config set project $GCP_PROJECT_ID
+        gcloud auth configure-docker
 
-      - name: Build Development
-        run: npm run build
+    - name: Build Docker image
+      run: |
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest .
 
-      - name: Archive Production Artifact
-        uses: actions/upload-artifact@main
-        with:
-          name: build
-          path: build
+    - name: Push Docker image
+      run: |
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest
 
-  deploy-gcr:
-    name: Deploy to GCR
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@main
-
-      - name: Download Artifact
-        uses: actions/download-artifact@main
-        with:
-          name: build
-          path: .docker/build
-
-      - name: Setup GCloud Auth
-        id: auth
-        uses: google-github-actions/auth@v0.4.0
-        with:
-          credentials_json: ${{ inputs.GCR_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.1
-
-      # Build and push image to Google Container Registry
-      - name: Build & Push
-        run: |-
-          gcloud builds submit \
-            --quiet \
-            --tag "gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA"
-        working-directory: .docker
-
-      # Deploy image to Cloud Run
-      - name: Deploy GCR
-        run: |-
-          gcloud run deploy "$SERVICE_NAME" \
-            --quiet \
-            --region "$RUN_REGION" \
-            --image "gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA" \
-            --platform "managed" \
-            --allow-unauthenticated
+    - name: Deploy to Cloud Run
+      env:
+        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      run: |
+        gcloud run deploy gcp-automation \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/gcp-automation:latest \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated
