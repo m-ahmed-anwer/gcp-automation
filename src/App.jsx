@@ -25,7 +25,7 @@ function App() {
           Edit <code>src/App.jsx</code> and save to test HMR
         </p>
       </div>
-      <p className="read-the-docs">Made to learn the GCP concepts.</p>
+      <p className="read-the-docs">Made to learn the GCP concepts by Ahmed Anwer.</p>
     </>
   );
 }
