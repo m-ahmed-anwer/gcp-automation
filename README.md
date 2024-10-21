@@ -2,6 +2,8 @@
 
 This repository outlines the implementation of a robust CI/CD pipeline utilizing GitHub Actions for automated deployment processes. The project leverages Google Cloud services, specifically Google Artifact Registry (GAR) for Docker image storage and Google Cloud Run for deploying containerized applications.
 
+![Architecture Diagram](src/assets/workflow.png)
+
 ## 🚀 Overview of the Architecture
 
 The CI/CD pipeline facilitates a seamless flow from code commits in GitHub to live application deployment in Google Cloud Run. Below is a high-level overview of the components involved:
@@ -12,10 +14,10 @@ The CI/CD pipeline facilitates a seamless flow from code commits in GitHub to li
 - **Google Cloud Run**: Handles the deployment and scaling of the application.
 
 ### Architecture Workflow
+
 ```plaintext
 Code Update ➜ GitHub Action Trigger ➜ Docker Build ➜ Push to GAR ➜ Deploy on Cloud Run
 ```
-
 
 ## 🔄 Workflow Steps
 
